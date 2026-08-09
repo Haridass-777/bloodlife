@@ -1,0 +1,70 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+.qs-root{
+  --void:#0B0D12;
+  --panel:#12151C;
+  --panel-2:#181C25;
+  --blood:#E13A2E;
+  --vital:#35C48C;
+  --amber:#E0A62E;
+  --ink:#ECE8DF;
+  --ink-dim:#8891A1;
+  --charcoal:#232733;
+
+  min-height:100vh;
+  background:var(--void);
+  color:var(--ink);
+  font-family:'Inter', sans-serif;
+}
+.qs-root *{ box-sizing:border-box; }
+.qs-root h1,.qs-root h3{ font-family:'Space Grotesk', sans-serif; letter-spacing:-0.01em; margin:0; }
+.qs-root .mono{ font-family:'IBM Plex Mono', monospace; }
+.qs-root a{ color:inherit; text-decoration:none; }
+.qs-root .wrap{ max-width:860px; margin:0 auto; padding:0 28px; }
+
+.qs-header{ border-bottom:1px solid var(--charcoal); background:rgba(11,13,18,0.9); position:sticky; top:0; z-index:10; }
+.qs-header-inner{ display:flex; align-items:center; justify-content:space-between; padding:18px 28px; }
+.qs-root .brand{ display:flex; align-items:center; gap:10px; font-weight:700; font-size:18px; }
+.qs-root .brand .dot{ width:10px; height:10px; border-radius:50%; background:var(--blood); }
+.qs-req-id{ font-size:12.5px; color:var(--ink-dim); border:1px solid var(--charcoal); padding:5px 11px; border-radius:999px; }
+
+.qs-content{ padding:40px 28px 100px; }
+.qs-loading{ color:var(--ink-dim); font-size:14.5px; }
+.qs-error{ margin-top:16px; font-size:13px; color:var(--blood); background:rgba(225,58,46,0.08); border:1px solid rgba(225,58,46,0.3); padding:10px 12px; border-radius:8px; }
+
+.qs-summary-bar{ display:flex; flex-wrap:wrap; gap:16px; align-items:flex-start; justify-content:space-between; }
+.qs-sub{ color:var(--ink-dim); font-size:14px; margin-top:8px; max-width:520px; }
+.qs-priority-badge{ font-family:'IBM Plex Mono', monospace; font-size:12px; padding:7px 14px; border-radius:999px; white-space:nowrap; }
+.qs-priority-badge.critical{ background:rgba(225,58,46,0.15); color:var(--blood); }
+.qs-priority-badge.scheduled{ background:rgba(53,196,140,0.15); color:var(--vital); }
+.qs-priority-badge.moderate{ background:rgba(224,166,46,0.15); color:var(--amber); }
+
+.qs-resolved-banner{ margin-top:20px; padding:14px 18px; border-radius:12px; background:rgba(53,196,140,0.08); border:1px solid rgba(53,196,140,0.3); color:var(--vital); font-size:13.8px; }
+
+.qs-section{ margin-top:40px; }
+.qs-section h3{ font-size:17px; display:flex; align-items:center; gap:8px; }
+.qs-count{ font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--ink-dim); background:var(--panel-2); border:1px solid var(--charcoal); padding:2px 9px; border-radius:999px; }
+.qs-empty-note{ margin-top:12px; font-size:13.5px; color:var(--ink-dim); }
+
+.qs-list{ margin-top:16px; display:flex; flex-direction:column; gap:12px; }
+.qs-card{ display:flex; align-items:center; gap:16px; padding:16px 18px; border:1px solid var(--charcoal); border-radius:14px; background:var(--panel); flex-wrap:wrap; }
+.qs-distance-chip{ font-size:13px; color:var(--ink); background:var(--panel-2); border:1px solid var(--charcoal); padding:6px 11px; border-radius:999px; white-space:nowrap; }
+.qs-card-main{ flex:1; min-width:220px; }
+.qs-card-title{ font-weight:600; font-size:15px; display:flex; align-items:center; gap:8px; }
+.qs-type-tag{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--ink-dim); border:1px solid var(--charcoal); padding:2px 8px; border-radius:999px; text-transform:capitalize; }
+.qs-card-sub{ font-size:13px; color:var(--ink-dim); margin-top:4px; }
+.qs-contact{ font-size:13px; margin-top:6px; color:var(--vital); }
+.qs-contact.locked{ color:var(--ink-dim); }
+.qs-status-chip{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; padding:4px 10px; border-radius:999px; white-space:nowrap; text-transform:capitalize; }
+.qs-status-chip.pending{ background:rgba(224,166,46,0.15); color:var(--amber); }
+.qs-status-chip.accepted{ background:rgba(53,196,140,0.15); color:var(--vital); }
+.qs-status-chip.rejected{ background:rgba(225,58,46,0.15); color:var(--blood); }
+.qs-status-chip.solved{ background:rgba(136,145,161,0.15); color:var(--ink-dim); }
+.qs-send-btn{ white-space:nowrap; }
+
+.qs-actions{ display:flex; gap:12px; margin-top:36px; }
+.qs-root .btn{ display:inline-flex; align-items:center; gap:8px; padding:11px 20px; border-radius:999px; font-weight:600; font-size:14px; border:1px solid transparent; cursor:pointer; }
+.qs-root .btn-primary{ background:var(--blood); color:#fff; }
+.qs-root .btn-primary:hover{ background:#c92e23; }
+.qs-root .btn-ghost{ border-color:var(--charcoal); color:var(--ink); background:transparent; }
+.qs-root .btn-ghost:hover{ border-color:var(--ink-dim); }

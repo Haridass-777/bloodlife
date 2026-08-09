@@ -1,0 +1,14 @@
+{
+  "name": "bloodbridge-server",
+  "version": "1.0.0",
+  "description": "Dummy backend for BloodBridge login, signup, and emergency request flows",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}
