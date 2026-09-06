@@ -1,17 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 .dp-root{
-  --void:#0B0D12;
-  --panel:#12151C;
-  --panel-2:#181C25;
-  --paper:#F6F2EC;
-  --blood:#E13A2E;
-  --pulse-glow:#FF7A5C;
-  --vital:#35C48C;
-  --amber:#E0A62E;
-  --ink:#ECE8DF;
-  --ink-dim:#8891A1;
-  --charcoal:#232733;
+  --void:#FFFFFF;
+--panel:#FFFFFF;
+--panel-2:#FAF7F2;
+--blood:#E13A2E;
+--vital:#1E9E6B;
+--amber:#E0A62E;
+--ink:#14181F;
+--ink-dim:#616B7A;
+--charcoal:#E7E2D8;
   --radius:14px;
 
   min-height:100vh;

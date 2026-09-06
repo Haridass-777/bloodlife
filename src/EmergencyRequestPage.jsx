@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { getVerifiedFacilities } from "./services/facilityService";
+import { submitEmergencyRequest } from "./services/emergencyRequestService";
 import "./EmergencyRequestPage.css";
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
@@ -31,6 +32,7 @@ export default function EmergencyRequestPage() {
   const [form, setForm] = useState({
     attenderName: "",
     attenderMobile: "",
+    attenderEmail: "",
     facilityId: "",
     unknownFacilityName: "",
     patientName: "",
@@ -43,31 +45,32 @@ export default function EmergencyRequestPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState(null);
 
-// selection facilities
- useEffect(() => {
+  // Load the verified facility list for the dropdown (guest mode only).
+  useEffect(() => {
     if (isFacilityMode) return;
 
     async function loadFacilities() {
-        try {
-            const data = await getVerifiedFacilities();
-            setFacilities(data);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setFacilitiesLoading(false);
-        }
+      try {
+        const data = await getVerifiedFacilities();
+        setFacilities(data);
+      } catch (err) {
+        console.error(err);
+        setError("Couldn't load the facility list — try refreshing.");
+      } finally {
+        setFacilitiesLoading(false);
+      }
     }
 
     loadFacilities();
-}, [isFacilityMode]);
+  }, [isFacilityMode]);
 
   function update(key, value) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
   const selectedReason = REASONS.find((r) => r.id === form.reason);
+  const selectedFacility = facilities.find((f) => f.id === form.facilityId);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -77,6 +80,7 @@ export default function EmergencyRequestPage() {
     if (!form.reason) return setError("Select a reason for the request.");
     if (!isFacilityMode) {
       if (!form.attenderName || !form.attenderMobile) return setError("Attender name and mobile number are required.");
+      if (!/^\S+@\S+\.\S+$/.test(form.attenderEmail)) return setError("Enter a valid email address.");
       if (!unknownFacility && !form.facilityId) return setError("Select a hospital/clinic, or mark it as unknown.");
       if (unknownFacility && !form.unknownFacilityName) return setError("Enter the hospital/clinic name.");
     }
@@ -84,37 +88,45 @@ export default function EmergencyRequestPage() {
     const payload = isFacilityMode
       ? {
           source: facilityUser.role, // "hospital" | "clinic"
-          facilityId: facilityUser.facilityId,
+          facilityId: facilityUser.facility_id,
+          createdBy: facilityUser.id,
+          requesterName: facilityUser.full_name,
+          requesterPhone: facilityUser.mobile,
+          requesterEmail: facilityUser.email || null,
           patientName: form.patientName || "Unknown",
-          age: form.age || "Unknown",
+          age: form.age || null,
           bloodGroup: form.bloodGroup,
           unitsNeeded: Number(form.unitsNeeded) || 1,
           reason: form.reason,
           details: form.details,
+          hospitalName: facilityUser.full_name,
         }
       : {
           source: "attender",
-          attenderName: form.attenderName,
-          attenderMobile: form.attenderMobile,
-          facilityId: unknownFacility ? undefined : form.facilityId,
-          unknownFacilityName: unknownFacility ? form.unknownFacilityName : undefined,
+          facilityId: unknownFacility ? null : form.facilityId,
+          requesterName: form.attenderName,
+          requesterPhone: form.attenderMobile,
+          requesterEmail: form.attenderEmail,
           patientName: form.patientName || "Unknown",
-          age: form.age || "Unknown",
+          age: form.age || null,
           bloodGroup: form.bloodGroup,
           unitsNeeded: Number(form.unitsNeeded) || 1,
           reason: form.reason,
           details: form.details,
+          hospitalName: unknownFacility ? form.unknownFacilityName : selectedFacility?.facility_name,
+          hospitalLocation: unknownFacility ? null : selectedFacility?.city,
+          latitude: unknownFacility ? null : selectedFacility?.latitude,
+          longitude: unknownFacility ? null : selectedFacility?.longitude,
         };
 
     setSubmitting(true);
     try {
       const data = await submitEmergencyRequest(payload);
-      navigate("/quick-search", {
-       state: {
-       request: data,
-       facilityUser,
+      navigate(`/quick-search/${data.id}`, {
+        state: {
+          role: isFacilityMode ? facilityUser.role : "attender",
         },
-        });
+      });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -122,36 +134,12 @@ export default function EmergencyRequestPage() {
     }
   }
 
-  if (result) {
-    return (
-      <div className="er-root">
-        <div className="wrap er-content">
-          <div className="er-card er-result">
-            <div className={`er-priority-badge ${priorityStyle(result.priority)}`}>{result.priority} priority</div>
-            <h2>Request submitted</h2>
-            <p className="er-sub">
-              Request ID <span className="mono">{result.id}</span> is now searching nearby stock and eligible donors.
-            </p>
-            <div className="er-summary">
-              <div><span>Blood group</span><b>{result.bloodGroup}</b></div>
-              <div><span>Units needed</span><b>{result.unitsNeeded}</b></div>
-              <div><span>Facility</span><b>{result.facility?.name || "Not specified"}{!result.facilityVerified && result.facility ? " (unverified — pending confirmation)" : ""}</b></div>
-              <div><span>Status</span><b className="mono">{result.status}</b></div>
-            </div>
-            <p className="er-note">🔔 Live matching, donor alerts and WhatsApp/email notifications will appear here — backend wiring for that comes next.</p>
-            <button className="btn btn-ghost" onClick={() => navigate("/")}>Back to home</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="er-root">
       <header className="er-header">
         <div className="wrap er-header-inner">
           <a href="/" className="brand"><span className="dot"></span>BloodBridge</a>
-          <span className="er-mode-tag">{isFacilityMode ? `Logged in as ${facilityUser.name}` : "Guest emergency request"}</span>
+          <span className="er-mode-tag">{isFacilityMode ? `Logged in as ${facilityUser.full_name}` : "Guest emergency request"}</span>
         </div>
       </header>
 
@@ -175,6 +163,10 @@ export default function EmergencyRequestPage() {
                 <label className="er-field">
                   <span>Attender mobile number</span>
                   <input value={form.attenderMobile} onChange={(e) => update("attenderMobile", e.target.value.replace(/\D/g, "").slice(0, 10))} required />
+                </label>
+                <label className="er-field">
+                  <span>Email address</span>
+                  <input type="email" value={form.attenderEmail} onChange={(e) => update("attenderEmail", e.target.value)} placeholder="you@example.com" required />
                 </label>
               </div>
             </div>

@@ -5,7 +5,6 @@ import "./AuthPages.css";
 
 const ROLES = [
   { id: "hospital", label: "Hospital" },
-  { id: "clinic", label: "Clinic" },
   { id: "bloodbank", label: "Blood Bank" },
   { id: "donor", label: "Donor" },
 ];

@@ -1,28 +1,29 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import LandingPage from "./LandingPage";
-import DonorPage from "./DonorPage";
 import LoginPage from "./LoginPage";
 import SignupPage from "./SignupPage";
+import DonorPage from "./DonorPage";
 import ContactUsPage from "./ContactUsPage";
+import Hospital from "./Hospital";
 import EmergencyRequestPage from "./EmergencyRequestPage";
 import Quick from "./Quick";
-import Hospital from "./Hospital";
+import "./App.css";
 
-function App() {
+export default function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/donor" element={<DonorPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
-        <Route path="/contact-us" element={<ContactUsPage />} />
+        <Route path="/donor" element={<DonorPage />} />
+        <Route path="/contact" element={<ContactUsPage />} />
+        <Route path="/hospital" element={<Hospital />} />
         <Route path="/emergency-request" element={<EmergencyRequestPage />} />
-        <Route path="/quick-search" element={<Quick />} />
-        <Route path="/facility" element={<Hospital />} />
+        <Route path="/quick-search/:requestId" element={<Quick />} />
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
-
-export default App;

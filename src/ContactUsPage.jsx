@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { submitContactForm } from "./api";
 import "./AuthPages.css";
 
 export default function ContactUsPage() {
@@ -60,7 +59,6 @@ export default function ContactUsPage() {
                     style={{ background: "var(--void)", border: "1px solid var(--charcoal)", color: "var(--ink)", padding: "12px 14px", borderRadius: "9px", fontSize: "14.5px" }}
                   >
                     <option value="hospital">Hospital</option>
-                    <option value="clinic">Clinic</option>
                     <option value="bloodbank">Blood Bank</option>
                   </select>
                 </label>

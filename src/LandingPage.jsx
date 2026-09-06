@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./LandingPage.css";
 
@@ -6,7 +6,7 @@ const ROLES = [
   {
     id: "01",
     title: "Super Admin",
-    desc: "Verifies every hospital, clinic, blood bank and volunteer before they can appear in a search result.",
+    desc: "Verifies every hospital, blood bank and volunteer before they can appear in a search result.",
     chips: ["Verification", "Analytics", "Fraud control"],
   },
   {
@@ -20,12 +20,6 @@ const ROLES = [
     title: "Blood Bank Manager",
     desc: "Owns live inventory — the number every other role's search depends on.",
     chips: ["Stock in/out", "Approve requests"],
-  },
-  {
-    id: "04",
-    title: "Clinic / Small Hospital Staff",
-    desc: "Runs the full request-to-resolution flow with no HMS in the background.",
-    chips: ["Create request", "Search blood"],
   },
   {
     id: "05",
@@ -74,13 +68,15 @@ const FEATURES = [
   },
 ];
 
-const RADAR_NODES = [
-  { cls: "n1", label: "St. Mary Hospital" },
-  { cls: "n2", label: "City Blood Bank" },
-  { cls: "n3", label: "ABC Clinic" },
-  { cls: "n4", label: "Donor · O+" },
-  { cls: "n5", label: "Donor · B−" },
-];
+const IMAGES = {
+  hero: "/images/hero.jpg",
+  audienceLarge: "/images/audience1.jpg",
+  audienceSmall: "/images/audience.jpg",
+  galleryTall: "/images/long.jpg",
+  galleryA: "/images/gallery1.jpg",
+  galleryB: "/images/gallery2.jpg",
+  cta: "/images/gallery2.jpg",
+};
 
 function VerifiedTag() {
   return (
@@ -95,10 +91,9 @@ function VerifiedTag() {
 }
 
 export default function LandingPage() {
-  const radarRef = useRef(null);
   const navigate = useNavigate();
 
-  // scroll reveal
+  // Scroll reveal animation
   useEffect(() => {
     const els = document.querySelectorAll(".reveal");
     const io = new IntersectionObserver(
@@ -116,35 +111,12 @@ export default function LandingPage() {
     return () => io.disconnect();
   }, []);
 
-  // radar node light-up cycle
-  useEffect(() => {
-    const nodes = radarRef.current?.querySelectorAll("[data-node]") ?? [];
-    let timeouts = [];
-
-    function cycle() {
-      nodes.forEach((n, i) => {
-        const onT = setTimeout(() => {
-          n.classList.add("lit");
-          const offT = setTimeout(() => n.classList.remove("lit"), 1400);
-          timeouts.push(offT);
-        }, i * 550);
-        timeouts.push(onT);
-      });
-    }
-
-    cycle();
-    const interval = setInterval(cycle, 3600);
-    return () => {
-      clearInterval(interval);
-      timeouts.forEach(clearTimeout);
-    };
-  }, []);
-
   return (
     <div className="bb-root">
+      {/* ===== HEADER ===== */}
       <header>
         <div className="navbar">
-          <a href="#" className="brand">
+          <a href="/" className="brand">
             <span className="dot"></span>BloodBridge
           </a>
           <nav className="nav-links">
@@ -154,12 +126,25 @@ export default function LandingPage() {
             <a href="#features">Features</a>
           </nav>
           <div style={{ display: "flex", gap: 10 }}>
-            <a href="#" onClick={(e) => { e.preventDefault(); navigate("/login"); }} className="btn btn-ghost">Log in</a>
-            <a href="#" onClick={(e) => { e.preventDefault(); navigate("/emergency-request"); }} className="btn btn-primary">Emergency request</a>
+            <button
+              className="btn btn-ghost"
+              onClick={() => navigate("/login")}
+              type="button"
+            >
+              Log in
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={() => navigate("/emergency-request")}
+              type="button"
+            >
+              Emergency request
+            </button>
           </div>
         </div>
       </header>
 
+      {/* ===== HERO SECTION ===== */}
       <section className="hero">
         <div className="wrap hero-grid">
           <div>
@@ -168,45 +153,52 @@ export default function LandingPage() {
               When blood is out of stock, <span>the search shouldn't be manual.</span>
             </h1>
             <p className="lead">
-              BloodBridge connects hospitals, blood banks, clinics and verified volunteer
-              donors in one live network — so an empty shelf turns into a matched unit in
-              minutes, not phone calls.
+              BloodBridge connects hospitals, blood banks and verified volunteer donors in one live network — so an empty shelf turns into a matched unit in minutes, not phone calls.
             </p>
             <div className="hero-ctas">
-              <a href="#emergency" className="btn btn-primary">Request blood now — no login</a>
-              <button type="button" className="btn btn-ghost" onClick={() => navigate("/donor")}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => navigate("/emergency-request")}
+              >
+                Request blood now — no login
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => navigate("/donor")}
+              >
                 Become a donor
               </button>
             </div>
             <p className="hero-note">
-              <b>No hospital or clinic name is ever typed manually</b> — every request links
-              to a pre-verified facility, so donors always arrive somewhere real.
+              <b>No hospital name is ever typed manually</b> — every request links to a pre-verified facility, so donors always arrive somewhere real.
             </p>
           </div>
 
-          <div className="radar-wrap" ref={radarRef} aria-hidden="true">
-            <div className="radar-ring"></div>
-            <div className="radar-ring r2"></div>
-            <div className="radar-ring r3"></div>
-            <div className="radar-core">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-                <path d="M12 21s-7-4.6-9.3-9C1 8.5 2 5 5.4 4.1 8 3.4 10.4 4.7 12 7c1.6-2.3 4-3.6 6.6-2.9C22 5 23 8.5 21.3 12 19 16.4 12 21 12 21z" />
-              </svg>
-            </div>
-            {RADAR_NODES.map((n) => (
-              <div className={`radar-node ${n.cls}`} data-node key={n.cls}>
-                <div className="pin"></div>
-                <div className="label">{n.label}</div>
+          <div className="hero-media">
+            <img src={IMAGES.hero} alt="Emergency response team" className="hero-photo" />
+            <div className="hero-float-card hero-stat-card">
+              <div className="hero-stat-num">
+                08<span>min</span>
               </div>
-            ))}
+              <div className="hero-stat-lbl">Average time to match a unit</div>
+            </div>
+            <div className="hero-float-card hero-verify-card">
+              <VerifiedTag />
+              <span>312 donors on standby nearby</span>
+            </div>
           </div>
         </div>
       </section>
 
+      {/* ===== STATS ===== */}
       <section className="stats">
         <div className="wrap stats-grid">
           <div className="stat">
-            <div className="num">08<span className="unit">min</span></div>
+            <div className="num">
+              08<span className="unit">min</span>
+            </div>
             <div className="lbl">Average time to match a unit</div>
           </div>
           <div className="stat">
@@ -214,7 +206,9 @@ export default function LandingPage() {
             <div className="lbl">Verified donors on standby nearby</div>
           </div>
           <div className="stat">
-            <div className="num">96<span className="unit">%</span></div>
+            <div className="num">
+              96<span className="unit">%</span>
+            </div>
             <div className="lbl">Requests resolved without transfer</div>
           </div>
           <div className="stat">
@@ -224,6 +218,7 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ===== HOW IT WORKS ===== */}
       <section className="section-pad" id="how">
         <div className="wrap">
           <div className="kicker">How it works</div>
@@ -231,8 +226,7 @@ export default function LandingPage() {
             One flow, whether you're a 500-bed hospital or a single-room clinic.
           </h2>
           <p className="section-sub reveal">
-            BloodBridge sits alongside your existing systems. It only activates the moment
-            blood isn't already on your shelf.
+            BloodBridge sits alongside your existing systems. It only activates the moment blood isn't already on your shelf.
           </p>
 
           <div className="flow reveal">
@@ -262,6 +256,7 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ===== AUDIENCES ===== */}
       <section className="section-pad section-alt" id="audiences">
         <div className="wrap">
           <div className="kicker">Built for both ends of the system</div>
@@ -269,33 +264,40 @@ export default function LandingPage() {
 
           <div className="aud-grid reveal">
             <div className="aud-card">
-              <div className="aud-badge">LARGE HOSPITALS</div>
-              <h3>An extension to your existing HMS</h3>
-              <ul>
-                <li>Your HMS keeps handling admissions, billing and records — untouched.</li>
-                <li>Optional API link sends blood group, units and Emergency ID straight across, no double entry.</li>
-                <li>Staff open BloodBridge only when the in-house blood bank comes up short.</li>
-                <li>A dedicated Blood Coordinator role keeps this off the general reception queue.</li>
-              </ul>
+              <img className="aud-img" src={IMAGES.audienceLarge} alt="Hospital HMS integration" />
+              <div className="aud-body">
+                <div className="aud-badge">LARGE HOSPITALS</div>
+                <h3>An extension to your existing HMS</h3>
+                <ul>
+                  <li>Your HMS keeps handling admissions, billing and records — untouched.</li>
+                  <li>Optional API link sends blood group, units and Emergency ID straight across, no double entry.</li>
+                  <li>Staff open BloodBridge only when the in-house blood bank comes up short.</li>
+                  <li>A dedicated Blood Coordinator role keeps this off the general reception queue.</li>
+                </ul>
+              </div>
             </div>
             <div className="aud-card">
-              <div className="aud-badge">CLINICS &amp; SMALL HOSPITALS</div>
-              <h3>Your primary blood coordination system</h3>
-              <ul>
-                <li>No HMS required — staff log in and raise a request directly.</li>
-                <li>Search nearby stock, reserve it, and track status in one screen.</li>
-                <li>Attenders can raise a request from an ambulance or remote clinic, pre-linked to a verified facility.</li>
-                <li>The facility takes over and verifies the moment they're reachable.</li>
-              </ul>
+              <img className="aud-img" src={IMAGES.audienceSmall} alt="Clinic dashboard" />
+              <div className="aud-body">
+                <div className="aud-badge">CLINICS &amp; SMALL HOSPITALS</div>
+                <h3>Your primary blood coordination system</h3>
+                <ul>
+                  <li>No HMS required — staff log in and raise a request directly.</li>
+                  <li>Search nearby stock, reserve it, and track status in one screen.</li>
+                  <li>Attenders can raise a request from an ambulance or remote clinic, pre-linked to a verified facility.</li>
+                  <li>The facility takes over and verifies the moment they're reachable.</li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
+      {/* ===== ROLES ===== */}
       <section className="section-pad" id="roles">
         <div className="wrap">
           <div className="kicker">Access, scoped by responsibility</div>
-          <h2 className="section-title reveal">Six roles. Each sees only what they need to act fast.</h2>
+          <h2 className="section-title reveal">Five roles. Each sees only what they need to act fast.</h2>
 
           <div className="roles-grid reveal">
             {ROLES.map((r) => (
@@ -308,7 +310,9 @@ export default function LandingPage() {
                 <p className="role-perms">{r.desc}</p>
                 <div className="perf-line">
                   {r.chips.map((c) => (
-                    <span className="chip" key={c}>{c}</span>
+                    <span className="chip" key={c}>
+                      {c}
+                    </span>
                   ))}
                 </div>
               </div>
@@ -317,6 +321,7 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ===== FEATURES ===== */}
       <section className="section-pad section-alt" id="features">
         <div className="wrap">
           <div className="kicker">Under the hood</div>
@@ -340,16 +345,46 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="wrap cta-wrap" id="emergency">
-        <div className="cta-band reveal">
-          <div>
-            <h3>Need blood right now?</h3>
-            <p>Submit an emergency request without an account. Select a verified facility, and the search starts immediately.</p>
+      {/* ===== GALLERY ===== */}
+      <section className="section-pad" id="gallery">
+        <div className="wrap">
+          <div className="kicker">In the field</div>
+          <h2 className="section-title reveal">Real donations. Real hospitals. Real people.</h2>
+          <div className="gallery-grid reveal">
+            <div className="gallery-item tall">
+              <img src={IMAGES.galleryTall} alt="Volunteer donating blood" />
+            </div>
+            <div className="gallery-item">
+              <img src={IMAGES.galleryA} alt="Hospital care team" />
+            </div>
+            <div className="gallery-item">
+              <img src={IMAGES.galleryB} alt="Donor portrait" />
+            </div>
           </div>
-          <a href="#" onClick={(e) => { e.preventDefault(); navigate("/emergency-request"); }} className="btn btn-primary">Start emergency request →</a>
         </div>
       </section>
 
+      {/* ===== CTA ===== */}
+      <section className="wrap cta-wrap" id="emergency">
+        <div className="cta-band reveal" style={{ backgroundImage: `url(${IMAGES.cta})` }}>
+          <div className="cta-band-overlay"></div>
+          <div className="cta-band-content">
+            <div>
+              <h3>Need blood right now?</h3>
+              <p>Submit an emergency request without an account. Select a verified facility, and the search starts immediately.</p>
+            </div>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => navigate("/emergency-request")}
+            >
+              Start emergency request →
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== FOOTER ===== */}
       <footer>
         <div className="wrap foot-grid">
           <div className="foot-col">
@@ -357,8 +392,7 @@ export default function LandingPage() {
               <span className="dot"></span>BloodBridge
             </div>
             <p style={{ color: "var(--ink-dim)", fontSize: 13.5, maxWidth: 280 }}>
-              A coordination layer for blood emergencies — not a replacement for hospital
-              systems, blood-bank protocol, or medical judgment.
+              A coordination layer for blood emergencies — not a replacement for hospital systems, blood-bank protocol, or medical judgment.
             </p>
           </div>
           <div className="foot-col">
@@ -371,7 +405,21 @@ export default function LandingPage() {
             <h5>Get started</h5>
             <a href="#">Hospital registration</a>
             <a href="#">Blood bank registration</a>
-            <a href="#" onClick={(e) => { e.preventDefault(); navigate("/donor"); }}>Become a volunteer</a>
+            <button
+              type="button"
+              style={{
+                background: "none",
+                border: "none",
+                color: "inherit",
+                cursor: "pointer",
+                textDecoration: "underline",
+                font: "inherit",
+                padding: 0,
+              }}
+              onClick={() => navigate("/donor")}
+            >
+              Become a volunteer
+            </button>
           </div>
           <div className="foot-col">
             <h5>Support</h5>
@@ -382,7 +430,7 @@ export default function LandingPage() {
         </div>
         <div className="wrap foot-bottom">
           <span>© 2026 BloodBridge. All facilities are independently verified.</span>
-          <span>Built for hospitals, clinics, blood banks &amp; volunteers.</span>
+          <span>Built for hospitals, blood banks &amp; volunteers.</span>
         </div>
       </footer>
     </div>

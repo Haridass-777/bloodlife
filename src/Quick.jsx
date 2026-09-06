@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { fetchEmergencyRequest, fetchMatches, notifyDonor } from "./services/searchService";
 import "./Quick.css";
 
 export default function QuickSearchPage() {
@@ -7,7 +8,8 @@ export default function QuickSearchPage() {
   const location = useLocation();
   const navigate = useNavigate();
   // Falls back to "attender" if this page is opened directly (e.g. refreshed).
-  const role = location.state?.role === "hospital" ? "hospital" : "attender";
+  const role = location.state?.role || "attender";
+  const isFacilityRole = role === "hospital" || role === "clinic" || role === "bloodbank";
 
   const [request, setRequest] = useState(null);
   const [matches, setMatches] = useState(null);
@@ -17,9 +19,13 @@ export default function QuickSearchPage() {
 
   const load = useCallback(async () => {
     try {
-      const [req, m] = await Promise.all([fetchEmergencyRequest(requestId), fetchMatches(requestId, role)]);
+      const [req, m] = await Promise.all([
+        fetchEmergencyRequest(requestId),
+        fetchMatches(requestId, role),
+      ]);
       setRequest(req);
       setMatches(m);
+      setError("");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -64,7 +70,7 @@ export default function QuickSearchPage() {
                 <h1>{matches.bloodGroup} needed nearby</h1>
                 <p className="qs-sub">
                   {matches.radiusKm ? `Found within ${matches.radiusKm} km, nearest first.` : "Search radius expanded fully — showing everything found."}{" "}
-                  {role === "hospital"
+                  {isFacilityRole
                     ? "Logged in as a verified facility — full contact details are shown below."
                     : "Hospital/blood bank contact stays with your care team; donor contact appears once a donor accepts."}
                 </p>
@@ -72,7 +78,7 @@ export default function QuickSearchPage() {
               <span className={`qs-priority-badge ${matches.priority.toLowerCase()}`}>{matches.priority} priority</span>
             </div>
 
-            {matches.status === "resolved" && (
+            {matches.status === "completed" && (
               <div className="qs-resolved-banner">✓ This request has been marked resolved — a source has been confirmed.</div>
             )}
 
@@ -82,7 +88,7 @@ export default function QuickSearchPage() {
               <div className="qs-list">
                 {matches.facilities.map((f) => (
                   <div className="qs-card" key={f.id}>
-                    <div className="qs-distance-chip mono">{f.distanceKm} km</div>
+                    <div className="qs-distance-chip mono">{f.distanceKm != null ? `${f.distanceKm} km` : "—"}</div>
                     <div className="qs-card-main">
                       <div className="qs-card-title">{f.name} <span className="qs-type-tag">{f.type}</span></div>
                       <div className="qs-card-sub">{f.city} · {f.unitsAvailable} unit{f.unitsAvailable > 1 ? "s" : ""} in stock</div>
@@ -106,7 +112,7 @@ export default function QuickSearchPage() {
                   const wasSent = d.notified || sentIds.includes(d.id);
                   return (
                     <div className="qs-card" key={d.id}>
-                      <div className="qs-distance-chip mono">{d.distanceKm} km</div>
+                      <div className="qs-distance-chip mono">{d.distanceKm != null ? `${d.distanceKm} km` : "—"}</div>
                       <div className="qs-card-main">
                         <div className="qs-card-title">{d.name}</div>
                         <div className="qs-card-sub">
@@ -120,7 +126,7 @@ export default function QuickSearchPage() {
                           <div className="qs-contact locked">🔒 Contact appears once this donor accepts</div>
                         )}
                       </div>
-                      {role === "attender" && !d.accepted && !wasSent && (
+                      {!isFacilityRole && !d.accepted && !wasSent && (
                         <button className="btn btn-primary qs-send-btn" onClick={() => handleSendRequest(d.id)}>
                           Send request
                         </button>
