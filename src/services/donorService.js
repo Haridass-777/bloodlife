@@ -173,6 +173,8 @@ export async function getDonorProfile(userId) {
       level: profile.eligibility_level || "ok",
       reason: profile.eligibility_reason || "",
     },
+    latitude: profile.latitude,
+    longitude: profile.longitude,
   };
 }
 

@@ -1,116 +1,37 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "./Hospital.css";
-import { getInventory, setInventory, adjustInventory } from "./services/inventoryService";
+import { OverviewPanel, InventoryPanel, MatchesPanel, ProfilePanel } from "./FacilityPanels";
 import { createFacilityRequest, getFacilityRequests, updateRequestStatus } from "./services/emergencyRequestService";
-import { getIncomingMatches, respondToMatch } from "./services/matchService";
-import { getFacilityById, updateFacility } from "./services/facilityService";
+import { getBloodBankNetwork } from "./services/bloodBankService";
+import { getFacilityById } from "./services/facilityService";
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
 const NAV_ITEMS = [
+  { id: "overview", label: "Overview" },
   { id: "inventory", label: "Blood Inventory" },
   { id: "requests", label: "Emergency Requests" },
-  { id: "matches", label: "Incoming Matches" },
+  { id: "matches", label: "Incoming Requests" },
+  { id: "bloodbank", label: "Blood Bank Network" },
   { id: "profile", label: "Facility Profile" },
 ];
 
-function VerifiedTag() {
-  return (
-    <span className="hp-verified">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-        <path d="M9 12l2 2 4-4" />
-        <circle cx="12" cy="12" r="9" />
-      </svg>
-      VERIFIED
-    </span>
-  );
+function haversineKm(lat1, lon1, lat2, lon2) {
+  if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return null;
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c * 10) / 10;
 }
 
 /* ---------------------------------------------------------
-   Inventory
---------------------------------------------------------- */
-function InventoryPanel({ facilityId }) {
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [savingGroup, setSavingGroup] = useState(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      setRows(await getInventory(facilityId));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [facilityId]);
-
-  useEffect(() => { load(); }, [load]);
-
-  function unitsFor(bg) {
-    return rows.find((r) => r.blood_group === bg)?.units_available ?? 0;
-  }
-
-  async function handleAdjust(bg, delta) {
-    setSavingGroup(bg);
-    try {
-      await adjustInventory(facilityId, bg, delta);
-      await load();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSavingGroup(null);
-    }
-  }
-
-  async function handleSet(bg, value) {
-    setSavingGroup(bg);
-    try {
-      await setInventory(facilityId, bg, Math.max(0, Number(value) || 0));
-      await load();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSavingGroup(null);
-    }
-  }
-
-  return (
-    <section>
-      <h2>Blood Inventory</h2>
-      <p className="hp-sub">Kept accurate here first — this is what every nearby search checks before it reaches a donor.</p>
-      {error && <div className="hp-error">{error}</div>}
-      {loading ? (
-        <p className="hp-hint">Loading…</p>
-      ) : (
-        <div className="hp-inv-grid">
-          {BLOOD_GROUPS.map((bg) => (
-            <div className="hp-inv-card" key={bg}>
-              <div className="hp-inv-bg mono">{bg}</div>
-              <input
-                type="number"
-                min="0"
-                className="hp-inv-input"
-                value={unitsFor(bg)}
-                onChange={(e) => handleSet(bg, e.target.value)}
-                disabled={savingGroup === bg}
-              />
-              <div className="hp-inv-actions">
-                <button className="btn btn-ghost" onClick={() => handleAdjust(bg, -1)} disabled={savingGroup === bg}>−1</button>
-                <button className="btn btn-ghost" onClick={() => handleAdjust(bg, 1)} disabled={savingGroup === bg}>+1</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-/* ---------------------------------------------------------
-   Emergency requests (create + track own)
+   Emergency requests (create + track own) — hospital-only,
+   a blood bank doesn't raise patient-facing requests.
 --------------------------------------------------------- */
 function RequestsPanel({ facilityUser }) {
   const [requests, setRequests] = useState([]);
@@ -118,7 +39,7 @@ function RequestsPanel({ facilityUser }) {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
-    patientName: "", age: "", gender: "", bloodGroup: "A+",
+    patientName: "", age: "", bloodGroup: "A+",
     unitsNeeded: 1, reason: "operation", details: "",
   });
 
@@ -145,7 +66,7 @@ function RequestsPanel({ facilityUser }) {
     setError("");
     try {
       await createFacilityRequest(facilityUser, form);
-      setForm({ patientName: "", age: "", gender: "", bloodGroup: "A+", unitsNeeded: 1, reason: "operation", details: "" });
+      setForm({ patientName: "", age: "", bloodGroup: "A+", unitsNeeded: 1, reason: "operation", details: "" });
       await load();
     } catch (err) {
       setError(err.message);
@@ -175,14 +96,6 @@ function RequestsPanel({ facilityUser }) {
           </label>
           <label className="hp-field"><span>Age</span>
             <input type="number" min="0" value={form.age} onChange={(e) => update("age", e.target.value)} />
-          </label>
-          <label className="hp-field"><span>Gender</span>
-            <select value={form.gender} onChange={(e) => update("gender", e.target.value)}>
-              <option value="">Select</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-            </select>
           </label>
           <label className="hp-field"><span>Blood group</span>
             <select value={form.bloodGroup} onChange={(e) => update("bloodGroup", e.target.value)}>
@@ -236,156 +149,99 @@ function RequestsPanel({ facilityUser }) {
 }
 
 /* ---------------------------------------------------------
-   Incoming matches (this facility as a possible source)
+   Blood Bank Network — read-only browse of nearby blood
+   banks' live stock. Blood banks manage their own inventory
+   through their own separate account — this panel never
+   writes anything.
 --------------------------------------------------------- */
-function MatchesPanel({ facilityId, facilityType }) {
-  const [matches, setMatches] = useState([]);
+function BloodBankNetworkPanel({ facilityId }) {
+  const navigate = useNavigate();
+  const [banks, setBanks] = useState([]);
+  const [ownLocation, setOwnLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [actingId, setActingId] = useState(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      setMatches(await getIncomingMatches(facilityId, facilityType));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [facilityId, facilityType]);
-
-  useEffect(() => { load(); }, [load]);
-
-  async function respond(matchId, status) {
-    setActingId(matchId);
-    try {
-      await respondToMatch(matchId, status);
-      await load();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setActingId(null);
-    }
-  }
-
-  return (
-    <section>
-      <h2>Incoming Matches</h2>
-      <p className="hp-sub">Other facilities' emergency requests where your stock was suggested as a possible source.</p>
-      {error && <div className="hp-error">{error}</div>}
-      {loading ? (
-        <p className="hp-hint">Loading…</p>
-      ) : matches.length === 0 ? (
-        <p className="hp-hint">No incoming matches right now.</p>
-      ) : (
-        <div className="hp-req-list">
-          {matches.map((m) => (
-            <div className="hp-req-card" key={m.id}>
-              <div className="hp-req-main">
-                <div className="hp-req-title">
-                  {m.emergency_requests?.blood_group} needed · {m.emergency_requests?.units_required} unit{(m.emergency_requests?.units_required ?? 1) > 1 ? "s" : ""}
-                </div>
-                <div className="hp-req-sub">
-                  {m.distance_km != null ? `${m.distance_km} km away · ` : ""}<span className="mono">{m.emergency_requests?.request_number}</span> · {m.status}
-                </div>
-              </div>
-              {m.status === "pending" && (
-                <div className="hp-req-actions">
-                  <button className="btn btn-primary" disabled={actingId === m.id} onClick={() => respond(m.id, "accepted")}>Accept</button>
-                  <button className="btn btn-ghost" disabled={actingId === m.id} onClick={() => respond(m.id, "rejected")}>Decline</button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
-/* ---------------------------------------------------------
-   Facility profile
---------------------------------------------------------- */
-function ProfilePanel({ facilityId }) {
-  const [facility, setFacility] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      setFacility(await getFacilityById(facilityId));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const [network, own] = await Promise.all([
+          getBloodBankNetwork(),
+          getFacilityById(facilityId),
+        ]);
+        setBanks(network);
+        setOwnLocation(own);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [facilityId]);
 
-  useEffect(() => { load(); }, [load]);
-
-  function update(key, value) {
-    setFacility((f) => ({ ...f, [key]: value }));
-    setSaved(false);
-  }
-
-  async function handleSave() {
-    setSaving(true);
-    setError("");
-    try {
-      setFacility(await updateFacility(facilityId, facility));
-      setSaved(true);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  if (loading) return <p className="hp-hint">Loading…</p>;
-  if (!facility) return <p className="hp-hint">Profile not found.</p>;
+  const withDistance = banks
+    .map((b) => {
+      const stock = (b.blood_inventory || []).filter((s) => s.units_available > 0);
+      const totalUnits = stock.reduce((sum, s) => sum + s.units_available, 0);
+      return {
+        ...b,
+        stock,
+        totalUnits,
+        distanceKm: ownLocation
+          ? haversineKm(ownLocation.latitude, ownLocation.longitude, b.latitude, b.longitude)
+          : null,
+      };
+    })
+    .sort((a, b) => (a.distanceKm ?? 9999) - (b.distanceKm ?? 9999));
 
   return (
     <section>
       <div className="hp-panel-header">
-        <h2>Facility Profile</h2>
-        {facility.verification_status === "verified" && <VerifiedTag />}
+        <h2>Blood Bank Network</h2>
+      </div>
+      <p className="hp-sub">
+        Live stock from partner blood banks — browse only, they manage their own inventory.
+      </p>
+
+      <div
+        className="hp-req-card"
+        style={{ marginTop: 20, background: "rgba(225,58,46,0.06)", borderColor: "rgba(225,58,46,0.25)" }}
+      >
+        <div className="hp-req-main">
+          <div className="hp-req-title">Are you blood bank staff?</div>
+          <div className="hp-req-sub">Log in with your own blood bank account to manage stock and respond to requests.</div>
+        </div>
+        <button className="btn btn-primary" onClick={() => navigate("/login?role=bloodbank")}>
+          Blood bank login →
+        </button>
       </div>
 
-      <div className="hp-profile-grid">
-        <div><span className="hp-field-label">Facility name</span><div>{facility.facility_name}</div></div>
-        <div><span className="hp-field-label">Type</span><div className="mono">{facility.facility_type}</div></div>
-        <div><span className="hp-field-label">City / District</span><div>{facility.city}, {facility.district}</div></div>
-
-        <label className="hp-field"><span>Phone</span>
-          <input value={facility.phone || ""} onChange={(e) => update("phone", e.target.value)} />
-        </label>
-        <label className="hp-field"><span>Emergency contact</span>
-          <input value={facility.emergency_contact || ""} onChange={(e) => update("emergency_contact", e.target.value)} />
-        </label>
-        <label className="hp-field"><span>Address</span>
-          <input value={facility.address || ""} onChange={(e) => update("address", e.target.value)} />
-        </label>
-        <label className="hp-field"><span>Total beds</span>
-          <input type="number" min="0" value={facility.total_beds || ""} onChange={(e) => update("total_beds", Number(e.target.value))} />
-        </label>
-        <label className="hp-field hp-checkbox">
-          <input type="checkbox" checked={!!facility.blood_bank_available} onChange={(e) => update("blood_bank_available", e.target.checked)} />
-          <span>In-house blood bank</span>
-        </label>
-        <label className="hp-field hp-checkbox">
-          <input type="checkbox" checked={!!facility.accepts_emergency_requests} onChange={(e) => update("accepts_emergency_requests", e.target.checked)} />
-          <span>Accepting emergency requests</span>
-        </label>
-      </div>
-
-      {error && <div className="hp-error">{error}</div>}
-      <button className="btn btn-primary" style={{ marginTop: 20 }} onClick={handleSave} disabled={saving}>
-        {saving ? "Saving…" : saved ? "Saved ✓" : "Save changes"}
-      </button>
+      {error && <div className="hp-error" style={{ marginTop: 20 }}>{error}</div>}
+      {loading ? (
+        <p className="hp-hint">Loading network…</p>
+      ) : withDistance.length === 0 ? (
+        <p className="hp-hint" style={{ marginTop: 20 }}>No verified blood banks in the network yet.</p>
+      ) : (
+        <div className="hp-req-list" style={{ marginTop: 20 }}>
+          {withDistance.map((b) => (
+            <div className="hp-req-card" key={b.id}>
+              <div className="mono" style={{ minWidth: 70 }}>
+                {b.distanceKm != null ? `${b.distanceKm} km` : "—"}
+              </div>
+              <div className="hp-req-main">
+                <div className="hp-req-title">{b.facility_name}</div>
+                <div className="hp-req-sub">
+                  {b.city} · {b.totalUnits} unit{b.totalUnits === 1 ? "" : "s"} in stock
+                  {b.stock.length > 0 && (
+                    <> — {b.stock.map((s) => `${s.blood_group} (${s.units_available})`).join(", ")}</>
+                  )}
+                </div>
+              </div>
+              {b.phone && <div className="mono hp-hint">📞 {b.phone}</div>}
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -397,7 +253,7 @@ export default function Hospital() {
   const location = useLocation();
   const navigate = useNavigate();
   const facilityUser = location.state?.facilityUser;
-  const [active, setActive] = useState("inventory");
+  const [active, setActive] = useState("overview");
 
   useEffect(() => {
     if (!facilityUser) navigate("/login?role=hospital");
@@ -418,7 +274,7 @@ export default function Hospital() {
         <div className="hp-dashboard">
           <aside className="hp-sidebar">
             <div className="hp-sidebar-profile">
-              <div className="hp-avatar mono">{facilityUser.full_name?.[0] || "F"}</div>
+              <div className="hp-avatar mono">{facilityUser.full_name?.[0] || "H"}</div>
               <div>
                 <div className="hp-sidebar-name">{facilityUser.full_name}</div>
                 <div className="hp-sidebar-sub mono">{facilityUser.user_code}</div>
@@ -438,9 +294,11 @@ export default function Hospital() {
           </aside>
 
           <main className="hp-panel">
+            {active === "overview" && <OverviewPanel facilityId={facilityUser.facility_id} facilityType="hospital" />}
             {active === "inventory" && <InventoryPanel facilityId={facilityUser.facility_id} />}
             {active === "requests" && <RequestsPanel facilityUser={facilityUser} />}
-            {active === "matches" && <MatchesPanel facilityId={facilityUser.facility_id} facilityType={facilityUser.role} />}
+            {active === "matches" && <MatchesPanel facilityId={facilityUser.facility_id} facilityType="hospital" />}
+            {active === "bloodbank" && <BloodBankNetworkPanel facilityId={facilityUser.facility_id} />}
             {active === "profile" && <ProfilePanel facilityId={facilityUser.facility_id} />}
           </main>
         </div>

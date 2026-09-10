@@ -22,7 +22,7 @@ export default function SignupPage() {
               <div className="signup-tag">OPEN TO EVERYONE</div>
               <h3>I'm an individual donor</h3>
               <p>Register directly — you'll go through identity verification, blood group, and a short medical eligibility check.</p>
-              <button className="btn btn-primary" onClick={() =>navigate("/donor-register")}>
+              <button className="btn btn-primary" onClick={() => navigate("/donor")}>
                 Register as a donor →
               </button>
             </div>

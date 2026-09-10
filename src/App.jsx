@@ -9,6 +9,7 @@ import Hospital from "./Hospital";
 import EmergencyRequestPage from "./EmergencyRequestPage";
 import Quick from "./Quick";
 import "./App.css";
+ import BloodBank from "./BloodBank";
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/hospital" element={<Hospital />} />
         <Route path="/emergency-request" element={<EmergencyRequestPage />} />
         <Route path="/quick-search/:requestId" element={<Quick />} />
+        <Route path="/bloodbank" element={<BloodBank />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>

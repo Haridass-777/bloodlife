@@ -38,51 +38,34 @@ export default function LoginPage() {
   }
 
   async function handleSubmit(e) {
-  e.preventDefault();
+    e.preventDefault();
 
-  setError("");
-  setLoading(true);
+    setError("");
+    setLoading(true);
 
-  try {
-    // Check captcha
-    if (Number(captchaInput) !== captcha.answer) {
-      throw new Error("Invalid captcha.");
+    try {
+      if (Number(captchaInput) !== captcha.answer) {
+        throw new Error("Invalid captcha.");
+      }
+
+      const user = await login(role, email.trim().toLowerCase(), password);
+
+      if (role === "donor") {
+        navigate("/donor", { state: { loggedIn: true, user } });
+      }else if (role === "hospital") {
+        navigate("/hospital", { state: { facilityUser: user } }); // was "/facility"
+      } else if (role === "bloodbank") {
+        navigate("/bloodbank", { state: { facilityUser: user } });
+      } else {
+        navigate("/");
+      }
+    } catch (err) {
+      setError(err.message || "Login failed.");
+      refreshCaptcha();
+    } finally {
+      setLoading(false);
     }
-
-    // Login using Supabase
-    const user = await login(
-      role,
-      email.trim().toLowerCase(),
-      password
-    );
-
-    // Navigate based on role
-    if (role === "donor") {
-      navigate("/donor", {
-        state: {
-          loggedIn: true,
-          user,
-        },
-      });
-    } else if (role === "hospital" || role === "clinic" || role === "bloodbank") {
-      // All facility-side roles land on the same dashboard —
-      // it adapts (inventory / requests / matches / profile) per role.
-      navigate("/facility", {
-        state: {
-          facilityUser: user,
-        },
-      });
-    } else {
-      navigate("/");
-    }
-  } catch (err) {
-    setError(err.message || "Login failed.");
-    refreshCaptcha();
-  } finally {
-    setLoading(false);
   }
-}
-  const activeRole = ROLES.find((r) => r.id === role);
 
   return (
     <div className="auth-root">
@@ -112,14 +95,13 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="auth-form">
             <label className="auth-field">
-             <span>Email</span>
-
-            <input
-              type="email"
-              value={email}
-              onChange={(e)=>setEmail(e.target.value)}
-              placeholder="Enter your email" 
-              required
+              <span>Email</span>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                required
               />
             </label>
 
@@ -165,7 +147,6 @@ export default function LoginPage() {
               Representing an unverified facility? <a href="#" onClick={(e) => { e.preventDefault(); navigate("/signup"); }}>See how to join</a>
             </p>
           )}
-
         </div>
       </div>
     </div>
