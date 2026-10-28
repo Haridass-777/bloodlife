@@ -601,25 +601,30 @@ function NearbyRequestsPanel({ profile }) {
   const [error, setError] = useState("");
   const [actingId, setActingId] = useState(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const data = await findRequestsForDonor(profile.id, profile.latitude, profile.longitude);
       setRequests(data);
+      setError("");
     } catch (err) {
       setError(err.message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [profile.id, profile.latitude, profile.longitude]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    const interval = setInterval(() => load(true), 6000); // new requests appear without refresh
+    return () => clearInterval(interval);
+  }, [load]);
 
   async function respond(requestId, status) {
     setActingId(requestId);
     try {
       await updateDonorResponse(requestId, profile.id, status);
-      await load();
+      await load(true);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -630,7 +635,7 @@ function NearbyRequestsPanel({ profile }) {
   return (
     <section>
       <h2>Nearby Emergency Requests</h2>
-      <p className="dp-step-sub">Matches for your blood group within range.</p>
+      <p className="dp-step-sub">Requests sent to you. Accepting shares your mobile number and address with the requester.</p>
       {error && <div className="dp-error">{error}</div>}
       {loading ? (
         <p className="dp-hint">Loading…</p>
@@ -647,6 +652,7 @@ function NearbyRequestsPanel({ profile }) {
                 </div>
                 <div className="dp-req-sub">
                   {r.distanceKm != null ? `${r.distanceKm} km away · ` : ""}{r.hospital_name || "Unknown facility"}
+                  {r.patient_name ? ` · Patient: ${r.patient_name}` : ""}
                 </div>
               </div>
               <div className="dp-req-actions">
@@ -670,7 +676,10 @@ function HistoryPanel({ donorId }) {
     (async () => {
       setLoading(true);
       try {
-        setRows(await getDonorRequestHistory(donorId));
+        const all = await getDonorRequestHistory(donorId);
+        // Only requests the donor has answered belong in history;
+        // unanswered ("sent") ones stay in Nearby Requests.
+        setRows(all.filter((r) => r.request_status !== "sent"));
       } catch (err) {
         setError(err.message);
       } finally {
@@ -699,7 +708,7 @@ function HistoryPanel({ donorId }) {
                 <td>{new Date(r.created_at).toLocaleDateString()}</td>
                 <td className="mono">{r.emergency_requests?.blood_group}</td>
                 <td>{r.emergency_requests?.patient_name || "Unknown"}</td>
-                <td><span className="dp-status-chip">{r.request_status}</span></td>
+                <td><span className="dp-status-chip" style={r.request_status === "rejected" ? { background: "rgba(225,58,46,0.12)", color: "var(--blood)" } : undefined}>{r.request_status}</span></td>
               </tr>
             ))}
           </tbody>

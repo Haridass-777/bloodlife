@@ -168,7 +168,12 @@ export async function fetchMatches(requestId, role) {
         distanceKm: d.distanceKm,
         accepted,
         notified: !!existing,
+        responseStatus: existing?.request_status || null,
+        // Contact details are revealed only after the donor accepts.
         phone: accepted ? d.user_accounts?.mobile : null,
+        address: accepted
+          ? [d.address, d.city, d.state, d.pincode].filter(Boolean).join(", ")
+          : null,
       };
     }),
   };
@@ -242,39 +247,29 @@ export async function updateDonorResponse(requestId, donorId, responseStatus) {
 }
 
 // ============================================
-// SEARCH REQUESTS - Find nearby requests for donor
+// DONOR INBOX - Requests that were sent to this donor
 // ============================================
-export async function findRequestsForDonor(donorId, lat, lng, radiusKm = 50) {
-  const { data: profile, error: profileError } = await supabase
-    .from("donor_profiles")
-    .select("blood_group")
-    .eq("id", donorId)
-    .single();
+// Returns requests where an attender/facility pressed "Send request" on this
+// donor and the donor has not answered yet. Each item is the emergency request
+// plus `donorRequestId` (the donor_requests row).
+export async function findRequestsForDonor(donorId, lat, lng) {
+  const { data, error } = await supabase
+    .from("donor_requests")
+    .select("id, request_id, request_status, created_at, emergency_requests(*)")
+    .eq("donor_id", donorId)
+    .eq("request_status", "sent")
+    .order("created_at", { ascending: false });
 
-  if (profileError) throw new Error(profileError.message);
+  if (error) throw new Error(error.message);
 
-  const bloodGroup = profile.blood_group;
-
-  // Get active requests for this blood group
-  const { data: requests, error: requestError } = await supabase
-    .from("emergency_requests")
-    .select("*")
-    .eq("blood_group", bloodGroup)
-    .or(`blood_group.eq.O+,blood_group.eq.O-`)
-    .eq("status", "searching");
-
-  if (requestError) throw new Error(requestError.message);
-
-  // Filter by distance and sort
-  const nearby = (requests || [])
-    .map((r) => ({
-      ...r,
-      distanceKm: haversineKm(lat, lng, r.latitude, r.longitude),
-    }))
-    .filter((r) => r.distanceKm && r.distanceKm <= radiusKm)
-    .sort((a, b) => a.distanceKm - b.distanceKm);
-
-  return nearby;
+  return (data || [])
+    .filter((row) => row.emergency_requests && row.emergency_requests.status === "searching")
+    .map((row) => ({
+      ...row.emergency_requests,
+      donorRequestId: row.id,
+      sentAt: row.created_at,
+      distanceKm: haversineKm(lat, lng, row.emergency_requests.latitude, row.emergency_requests.longitude),
+    }));
 }
 
 // ============================================

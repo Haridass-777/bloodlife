@@ -118,12 +118,19 @@ export default function QuickSearchPage() {
                         <div className="qs-card-sub">
                           {d.city}
                           {d.accepted && <span className="qs-status-chip accepted" style={{ marginLeft: 8 }}>Accepted</span>}
-                          {!d.accepted && wasSent && <span className="qs-status-chip pending" style={{ marginLeft: 8 }}>Alert sent — awaiting response</span>}
+                          {!d.accepted && wasSent && d.responseStatus !== "rejected" && <span className="qs-status-chip pending" style={{ marginLeft: 8 }}>Alert sent — awaiting response</span>}
+                          {d.responseStatus === "rejected" && <span className="qs-status-chip rejected" style={{ marginLeft: 8 }}>Declined</span>}
                         </div>
                         {d.phone ? (
-                          <div className="qs-contact">📞 {d.phone}</div>
+                          <>
+                            <div className="qs-contact">📞 {d.phone}</div>
+                            {d.address && <div className="qs-contact">📍 {d.address}</div>}
+                          </>
                         ) : (
-                          <div className="qs-contact locked">🔒 Contact appears once this donor accepts</div>
+                          <div className="qs-contact locked">🔒 Contact and address appear once this donor accepts</div>
+                        )}
+                        {d.responseStatus === "rejected" && (
+                          <div className="qs-contact locked">This donor declined.</div>
                         )}
                       </div>
                       {!isFacilityRole && !d.accepted && !wasSent && (
